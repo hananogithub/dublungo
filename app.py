@@ -90,11 +90,13 @@ def upload_files():
                 paired_lines = align_texts(text1, text2)
 
                 # 結果をTSVファイルに保存
+                output_dir = os.path.join(app.root_path, 'static', 'outputs')
+                os.makedirs(output_dir, exist_ok=True)
+                output_file = os.path.join(output_dir, 'translation_output.tsv')
                 df = pd.DataFrame(paired_lines, columns=['Language 1', 'Language 2'])
-                output_file = 'translation_output.tsv'
                 df.to_csv(output_file, sep='\t', index=False)
 
-                return jsonify({'success': True, 'file': output_file})
+                return jsonify({'success': True, 'file': os.path.join('static', 'outputs', 'translation_output.tsv')})
             except ValueError as e:
                 return jsonify({'error': str(e)}), 400
         else:
@@ -103,7 +105,7 @@ def upload_files():
 
 @app.route('/download/<filename>')
 def download_file(filename):
-    return send_file(filename, as_attachment=True)
+    return send_file(os.path.join(app.root_path, filename), as_attachment=True)
 
 if __name__ == '__main__':
     os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
