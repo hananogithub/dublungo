@@ -2,6 +2,7 @@ import os
 from flask import Flask, request, render_template, send_file, jsonify
 from werkzeug.utils import secure_filename
 import pandas as pd
+import chardet
 
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = 'uploads'
@@ -12,8 +13,19 @@ ALLOWED_EXTENSIONS = {'txt'}
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
+def detect_encoding(file_path):
+    with open(file_path, 'rb') as f:
+        raw_data = f.read()
+    return chardet.detect(raw_data)['encoding']
+
 def align_texts(file1, file2):
-    with open(file1, 'r', encoding='utf-8') as f1, open(file2, 'r', encoding='utf-8') as f2:
+    encoding1 = detect_encoding(file1)
+    encoding2 = detect_encoding(file2)
+
+    if encoding1 != 'utf-8' or encoding2 != 'utf-8':
+        raise ValueError("Files must be UTF-8 encoded")
+
+    with open(file1, 'r', encoding=encoding1) as f1, open(file2, 'r', encoding=encoding2) as f2:
         lines1 = f1.readlines()
         lines2 = f2.readlines()
 
@@ -60,4 +72,3 @@ def download_file(filename):
 if __name__ == '__main__':
     os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
     app.run(debug=True)
-
