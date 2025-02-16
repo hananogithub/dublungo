@@ -29,34 +29,56 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         document.getElementById('uploadForm').addEventListener('submit', function(e) {
-            e.preventDefault();
+            e.preventDefault(); // フォームのデフォルトの送信を防止
+
+            // フォームデータを取得
             var formData = new FormData(this);
+
+            // XMLHttpRequestオブジェクトを作成
             var xhr = new XMLHttpRequest();
+
+            // プログレスバーと結果表示用の要素を取得
             var progressBar = document.getElementById('progressBar');
             var progressBarInner = progressBar.querySelector('.progress-bar');
             var result = document.getElementById('result');
 
-            xhr.open('POST', '/', true);
+            // アップロードの進捗を監視
             xhr.upload.onprogress = function(e) {
                 if (e.lengthComputable) {
+                    // 進捗率を計算
                     var percentComplete = (e.loaded / e.total) * 100;
-                    progressBar.classList.remove('d-none');
+                    progressBar.classList.remove('d-none'); // プログレスバーを表示
                     progressBarInner.style.width = percentComplete + '%';
                     progressBarInner.textContent = percentComplete.toFixed(2) + '%';
                 }
             };
+
+            // リクエストが完了したときの処理
             xhr.onload = function() {
                 if (xhr.status === 200) {
-                    var response = JSON.parse(xhr.responseText);
-                    if (response.success) {
-                        result.innerHTML = '<div class="alert alert-success">Files aligned successfully. <a href="/download/' + response.file + '" class="alert-link">Download result</a></div>';
-                    } else {
-                        result.innerHTML = '<div class="alert alert-danger">Error: ' + response.error + '</div>';
+                    try {
+                        // サーバーからのレスポンスをJSONとして解析
+                        var response = JSON.parse(xhr.responseText);
+
+                        if (response.success) {
+                            // 成功時のメッセージとダウンロードリンクを表示
+                            result.innerHTML = '<div class="alert alert-success">Files aligned successfully. <a href="/download/' + response.file + '" class="alert-link">Download result</a></div>';
+                        } else {
+                            // エラーメッセージを表示
+                            result.innerHTML = '<div class="alert alert-danger">Error: ' + response.error + '</div>';
+                        }
+                    } catch (e) {
+                        // JSON解析エラー時のメッセージ
+                        result.innerHTML = '<div class="alert alert-danger">Error parsing server response</div>';
                     }
                 } else {
+                    // HTTPエラー時のメッセージ
                     result.innerHTML = '<div class="alert alert-danger">Error: ' + xhr.statusText + '</div>';
                 }
             };
+
+            // リクエストを送信
+            xhr.open('POST', '/', true);
             xhr.send(formData);
         });
     </script>
