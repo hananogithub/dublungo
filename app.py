@@ -19,54 +19,51 @@ def detect_encoding(file_path):
         raw_data = f.read()
     return chardet.detect(raw_data)['encoding']
 
-def calculate_similarity(line1, line2):
-    return SequenceMatcher(None, line1, line2).ratio()
+def extract_text(file_path, encoding):
+    with open(file_path, 'r', encoding=encoding, errors='ignore') as f:
+        return [line.strip() for line in f.readlines()]
 
-def align_texts(file1, file2):
+def preprocess_texts(file1, file2):
     encoding1 = detect_encoding(file1)
     encoding2 = detect_encoding(file2)
 
     if encoding1 != 'utf-8' or encoding2 != 'utf-8':
         raise ValueError("Files must be UTF-8 encoded")
 
-    with open(file1, 'r', encoding=encoding1, errors='ignore') as f1, \
-         open(file2, 'r', encoding=encoding2, errors='ignore') as f2:
-        lines1 = [line.strip() for line in f1.readlines()]
-        lines2 = [line.strip() for line in f2.readlines()]
+    # テキストを抽出
+    text1 = extract_text(file1, encoding1)
+    text2 = extract_text(file2, encoding2)
 
-    # 行のペアリング
+    return text1, text2
+
+def align_texts(text1, text2):
     paired_lines = []
     used_indices = set()  # すでにペアになった行を記録
 
-    for i, line1 in enumerate(lines1):
+    for i, line1 in enumerate(text1):
         best_match_index = -1
         best_match_score = 0
 
-        for j, line2 in enumerate(lines2):
+        for j, line2 in enumerate(text2):
             if j in used_indices:
                 continue  # すでにペアになった行はスキップ
-            similarity = calculate_similarity(line1, line2)
+            similarity = SequenceMatcher(None, line1, line2).ratio()
             if similarity > best_match_score:
                 best_match_score = similarity
                 best_match_index = j
 
         if best_match_score > 0.5:  # 類似度が0.5以上の場合にペアにする
-            paired_lines.append((line1, lines2[best_match_index]))
+            paired_lines.append((line1, text2[best_match_index]))
             used_indices.add(best_match_index)
         else:
             paired_lines.append((line1, ''))  # ペアが見つからない場合
 
     # ペアにならなかった行を追加
-    for j, line2 in enumerate(lines2):
+    for j, line2 in enumerate(text2):
         if j not in used_indices:
             paired_lines.append(('', line2))
 
-    # DataFrameに変換
-    df = pd.DataFrame(paired_lines, columns=['Language 1', 'Language 2'])
-
-    output_file = 'translation_output.tsv'
-    df.to_csv(output_file, sep='\t', index=False)
-    return output_file
+    return paired_lines
 
 @app.route('/', methods=['GET', 'POST'])
 def upload_files():
@@ -83,8 +80,20 @@ def upload_files():
             file1.save(os.path.join(app.config['UPLOAD_FOLDER'], filename1))
             file2.save(os.path.join(app.config['UPLOAD_FOLDER'], filename2))
             try:
-                output_file = align_texts(os.path.join(app.config['UPLOAD_FOLDER'], filename1),
-                                          os.path.join(app.config['UPLOAD_FOLDER'], filename2))
+                # 1つ目の処理: テキストを抽出
+                text1, text2 = preprocess_texts(
+                    os.path.join(app.config['UPLOAD_FOLDER'], filename1),
+                    os.path.join(app.config['UPLOAD_FOLDER'], filename2)
+                )
+
+                # 2つ目の処理: テキストをペアリング
+                paired_lines = align_texts(text1, text2)
+
+                # 結果をTSVファイルに保存
+                df = pd.DataFrame(paired_lines, columns=['Language 1', 'Language 2'])
+                output_file = 'translation_output.tsv'
+                df.to_csv(output_file, sep='\t', index=False)
+
                 return jsonify({'success': True, 'file': output_file})
             except ValueError as e:
                 return jsonify({'error': str(e)}), 400

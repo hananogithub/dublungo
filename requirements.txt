@@ -1,0 +1,4 @@
+flask
+pandas
+chardet
+werkzeug 
