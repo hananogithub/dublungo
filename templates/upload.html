@@ -1,86 +1,42 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Translation Aligner</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
-</head>
-<body>
-    <div class="container mt-5">
-        <h1 class="mb-4">Translation Aligner</h1>
-        <form id="uploadForm" enctype="multipart/form-data">
-            <div class="mb-3">
-                <label for="file1" class="form-label">Language 1 File (TXT)</label>
-                <input type="file" class="form-control" id="file1" name="file1" accept=".txt" required>
-            </div>
-            <div class="mb-3">
-                <label for="file2" class="form-label">Language 2 File (TXT)</label>
-                <input type="file" class="form-control" id="file2" name="file2" accept=".txt" required>
-            </div>
-            <button type="submit" class="btn btn-primary">Upload and Align</button>
-        </form>
-        <div id="progressBar" class="progress mt-3 d-none">
-            <div class="progress-bar" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0%</div>
-        </div>
-        <div id="result" class="mt-3"></div>
-    </div>
+<script>
+    document.getElementById('uploadForm').addEventListener('submit', function(e) {
+        e.preventDefault(); // フォームのデフォルトの送信を防止
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
-        document.getElementById('uploadForm').addEventListener('submit', function(e) {
-            e.preventDefault(); // フォームのデフォルトの送信を防止
+        var formData = new FormData(this);
+        var xhr = new XMLHttpRequest();
 
-            // フォームデータを取得
-            var formData = new FormData(this);
+        var progressBar = document.getElementById('progressBar');
+        var progressBarInner = progressBar.querySelector('.progress-bar');
+        var result = document.getElementById('result');
 
-            // XMLHttpRequestオブジェクトを作成
-            var xhr = new XMLHttpRequest();
+        xhr.upload.onprogress = function(e) {
+            if (e.lengthComputable) {
+                var percentComplete = (e.loaded / e.total) * 100;
+                progressBar.classList.remove('d-none');
+                progressBarInner.style.width = percentComplete + '%';
+                progressBarInner.textContent = percentComplete.toFixed(2) + '%';
+            }
+        };
 
-            // プログレスバーと結果表示用の要素を取得
-            var progressBar = document.getElementById('progressBar');
-            var progressBarInner = progressBar.querySelector('.progress-bar');
-            var result = document.getElementById('result');
-
-            // アップロードの進捗を監視
-            xhr.upload.onprogress = function(e) {
-                if (e.lengthComputable) {
-                    // 進捗率を計算
-                    var percentComplete = (e.loaded / e.total) * 100;
-                    progressBar.classList.remove('d-none'); // プログレスバーを表示
-                    progressBarInner.style.width = percentComplete + '%';
-                    progressBarInner.textContent = percentComplete.toFixed(2) + '%';
-                }
-            };
-
-            // リクエストが完了したときの処理
-            xhr.onload = function() {
-                if (xhr.status === 200) {
-                    try {
-                        // サーバーからのレスポンスをJSONとして解析
-                        var response = JSON.parse(xhr.responseText);
-
-                        if (response.success) {
-                            // 成功時のメッセージとダウンロードリンクを表示
-                            result.innerHTML = '<div class="alert alert-success">Files aligned successfully. <a href="/download/' + response.file + '" class="alert-link">Download result</a></div>';
-                        } else {
-                            // エラーメッセージを表示
-                            result.innerHTML = '<div class="alert alert-danger">Error: ' + response.error + '</div>';
-                        }
-                    } catch (e) {
-                        // JSON解析エラー時のメッセージ
-                        result.innerHTML = '<div class="alert alert-danger">Error parsing server response</div>';
+        xhr.onload = function() {
+            if (xhr.status === 200) {
+                try {
+                    var response = JSON.parse(xhr.responseText);
+                    if (response.success) {
+                        result.innerHTML = '<div class="alert alert-success">Files aligned successfully. ' +
+                            '<a href="/download/' + response.file + '" class="alert-link" download>Download result</a></div>';
+                    } else {
+                        result.innerHTML = '<div class="alert alert-danger">Error: ' + response.error + '</div>';
                     }
-                } else {
-                    // HTTPエラー時のメッセージ
-                    result.innerHTML = '<div class="alert alert-danger">Error: ' + xhr.statusText + '</div>';
+                } catch (e) {
+                    result.innerHTML = '<div class="alert alert-danger">Error parsing server response</div>';
                 }
-            };
+            } else {
+                result.innerHTML = '<div class="alert alert-danger">Error: ' + xhr.statusText + '</div>';
+            }
+        };
 
-            // リクエストを送信
-            xhr.open('POST', '/', true);
-            xhr.send(formData);
-        });
-    </script>
-</body>
-</html>
+        xhr.open('POST', '/upload/', true);
+        xhr.send(formData);
+    });
+</script>
