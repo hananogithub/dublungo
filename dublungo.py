@@ -100,3 +100,26 @@ if __name__ == "__main__":
 
     #print(f"類似度1: {cosine_score}")
     #print(f"類似度2: {cosine_score2}")
+
+
+import pyttsx3
+
+def speak_text(text, lang="en"):
+    """ 指定されたテキストを音声で読み上げる """
+    engine = pyttsx3.init()
+    
+    # 言語ごとに音声エンジンのプロパティを設定
+    voices = engine.getProperty('voices')
+    if lang == "fr":
+        for voice in voices:
+            if "french" in voice.name.lower():
+                engine.setProperty('voice', voice.id)
+                break
+    else:  # デフォルトは英語
+        for voice in voices:
+            if "english" in voice.name.lower():
+                engine.setProperty('voice', voice.id)
+                break
+
+    engine.say(text)
+    engine.runAndWait()

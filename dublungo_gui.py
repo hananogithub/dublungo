@@ -69,3 +69,31 @@ trans2_down_button.grid(row=2, column=10, padx=5, pady=5, sticky=tk.S)
 # メインループ実行
 root.attributes('-fullscreen',True)
 root.mainloop()
+
+
+from dublungo import speak_text
+
+def read_original():
+    text = original_text_widget.get("1.0", tk.END)
+    speak_text(text, lang="fr")  # フランス語の原文を読み上げ
+
+def read_translation():
+    text = translated_text_widget.get("1.0", tk.END)
+    speak_text(text, lang="en")  # 英語の翻訳を読み上げ
+
+# TkinterのGUI構築（仮のレイアウト）
+root = tk.Tk()
+root.title("Dublungo - 対訳管理")
+
+original_text_widget = tk.Text(root, height=10, width=50)
+translated_text_widget = tk.Text(root, height=10, width=50)
+
+read_original_button = tk.Button(root, text="原文を読み上げ", command=read_original)
+read_translation_button = tk.Button(root, text="訳文を読み上げ", command=read_translation)
+
+original_text_widget.pack()
+read_original_button.pack()
+translated_text_widget.pack()
+read_translation_button.pack()
+
+root.mainloop()
